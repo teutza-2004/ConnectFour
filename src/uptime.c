@@ -2,10 +2,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-#ifndef F_CPU
-#define F_CPU 16000000UL
-#endif
-
 volatile uint32_t g_uptime_ms = 0;
 
 ISR(TIMER2_COMPA_vect)

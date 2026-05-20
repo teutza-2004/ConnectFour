@@ -1,10 +1,6 @@
 #include "usart.h"
 #include <avr/io.h>
 
-#ifndef F_CPU
-#define F_CPU 12000000UL
-#endif
-
 void USART0_init(uint32_t baud)
 {
     uint16_t ubrr = (uint16_t)(F_CPU / (16UL * baud) - 1UL);
