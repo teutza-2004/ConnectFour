@@ -1,3 +1,4 @@
+#include "helpers.h"
 #include "matrix_functions.h"
 
 // LOGICA MATRICE LED
@@ -20,7 +21,7 @@ void __attribute__((noinline)) ws2812_send_byte(uint8_t dat) {
         "    lsl %3 \n"
         "    dec %1 \n"
         "    brne loop%= \n"     
-        : : "I" (_SFR_IO_ADDR(ARDUINO_PORT)), "r" (ctr), "I" (MATRIX_BIT), "r" (dat)
+        : : "I" (_SFR_IO_ADDR(DIGITAL_PORT)), "r" (ctr), "I" (MATRIX_BIT), "r" (dat)
     );
 }
 
@@ -61,7 +62,6 @@ void show_board() {
 }
 
 // LOGICA JOC
-
 uint8_t get_led_index(uint8_t row, uint8_t col) {
     return (row * 8) + col;
 }
@@ -81,6 +81,7 @@ int8_t drop_piece(uint8_t col, uint8_t player) {
         return -1; 
     }
 
+    // drop-ul efectiv
     for (int8_t row = 0; row <= final_row; row++) {
         matrix[row][col] = player;
         show_board();
@@ -91,4 +92,62 @@ int8_t drop_piece(uint8_t col, uint8_t player) {
     }
 
     return final_row;
+}
+
+void update_cursor(uint8_t *cursor) {
+    uint16_t joy_x = analog_read(JOY_X_BIT); 
+
+    if (joy_x < 200) {  // st
+        if (*cursor > 0) {
+            (*cursor)--;
+        }
+        _delay_ms(200);
+    } 
+    else if (joy_x > 800) { // dr
+        if (*cursor < 7) {
+            (*cursor)++;
+        }
+        _delay_ms(200);
+    }
+}
+
+void draw_cursor(uint8_t cursor, uint8_t player) {
+    // curatare rand sus
+    for (uint8_t c = 0; c < 8; c++) {
+        if (matrix[0][c] == player) {
+            matrix[0][c] = 0; 
+        }
+    }
+    
+    if (matrix[0][cursor] == 0) {
+        matrix[0][cursor] = player;
+    }
+
+    show_board();
+}
+
+void drop_pressed(uint8_t *cursor, uint8_t *player) {
+    // verif daca SW e apasat
+    if (!(PIND & (1 << SW_BIT))) {
+        _delay_ms(50); // debounce
+        if (!(PIND & (1 << SW_BIT))) {
+            matrix[0][*cursor] = 0;
+
+            int8_t landed_row = drop_piece(*cursor, *player);
+
+            //  schimba jucatorul
+            if (landed_row != -1) {
+                if (*player == 1) {
+                    *player = 2;
+                } else {
+                    *player = 1;
+                }
+            }
+
+            // blocheaza cat timp jucatorul tine apasat SW
+            while (!(PIND & (1 << SW_BIT))) {
+                show_board();
+            }
+        }
+    }
 }
