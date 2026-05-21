@@ -138,6 +138,63 @@ void draw_cursor(uint8_t cursor, uint8_t player) {
     show_board();
 }
 
+void victory_animation(uint8_t winner) {
+    static uint8_t victory_buffer[64][3];
+    uint8_t center_line = (uptime_ms() / 80) % 8;
+
+    for (uint8_t r = 0; r < 8; r++) {
+        uint8_t intensity = 0;
+
+        // calculez distanta simetrica
+        int8_t diff = abs(r - center_line);
+        
+        if (diff > 4) {
+            diff = 8 - diff;
+        }
+        
+        uint8_t dist = (uint8_t)diff;
+        // calcul intensitate lumina
+        if (dist == 0) {
+            intensity = 90;
+        } 
+        else if (dist == 1) {
+            intensity = 45;
+        } 
+        else if (dist == 2) {
+            intensity = 15;
+        } 
+        else if (dist == 3) {
+            intensity = 7;
+        } 
+        else {
+            intensity = 2;
+        }
+
+        // Îpun intensitatea pe toata linia
+        for (uint8_t c = 0; c < 8; c++) {
+            uint8_t idx = get_led_index(r, c);
+
+            if (winner == 1) { // val rosu
+                victory_buffer[idx][0] = 0;
+                victory_buffer[idx][1] = intensity;
+                victory_buffer[idx][2] = 0;
+            } else if (winner == 2) { // val verde
+                victory_buffer[idx][0] = intensity;
+                victory_buffer[idx][1] = 0;
+                victory_buffer[idx][2] = 0;
+            }
+        }
+    }
+
+    cli();
+    for (uint16_t i = 0; i < 64; i++) {
+        send_pixel(victory_buffer[i][0], victory_buffer[i][1], victory_buffer[i][2]);
+    }
+    sei();
+
+    _delay_us(300); // latch
+}
+
 void drop_pressed(uint8_t *cursor, uint8_t *player) {
     if (button_pressed_flag == 1) { // verif daca SW e apasat
         matrix[0][*cursor] = 0;
@@ -146,13 +203,26 @@ void drop_pressed(uint8_t *cursor, uint8_t *player) {
 
         if (landed_row == -1) {
             sound_play_error();
-        } else {
-            if (*player == 1) {
-                *player = 2;
+            button_pressed_flag = 0;
+            return;
+        }
+
+        // verif daca exista winner
+        uint8_t winner = check_winner();
+        if (winner != 0) {
+            while (1) {
+                sound_play_win();
+                victory_animation(winner);
+                
+                _delay_ms(15); 
             }
-            else {
-                *player = 1;
-            }
+        }
+
+        if (*player == 1) {
+            *player = 2;
+        }
+        else {
+            *player = 1;
         }
 
         // asteptam eliberarea SW
@@ -163,4 +233,46 @@ void drop_pressed(uint8_t *cursor, uint8_t *player) {
         // reset flag pt noua apasare
         button_pressed_flag = 0;
     }
+}
+
+uint8_t check_winner() {
+    for (uint8_t r = 0; r < 8; r++) {
+        for (uint8_t c = 0; c < 8; c++) {
+            uint8_t player = matrix[r][c];
+            
+            if (player == 0) {
+                continue;
+            }
+
+            // verif spre dr
+            if (c <= 4) {
+                if (matrix[r][c+1] == player && matrix[r][c+2] == player && matrix[r][c+3] == player) {
+                    return player;
+                }
+            }
+
+            // verif in jos
+            if (r <= 4) {
+                if (matrix[r+1][c] == player && matrix[r+2][c] == player && matrix[r+3][c] == player) {
+                    return player;
+                }
+            }
+
+            // verif diag principala jos
+            if (r <= 4 && c <= 4) {
+                if (matrix[r+1][c+1] == player && matrix[r+2][c+2] == player && matrix[r+3][c+3] == player) {
+                    return player;
+                }
+            }
+
+            // verif diag secundara jos
+            if (r <= 4 && c >= 3) {
+                if (matrix[r+1][c-1] == player && matrix[r+2][c-2] == player && matrix[r+3][c-3] == player) {
+                    return player;
+                }
+            }
+        }
+    }
+    
+    return 0;
 }
