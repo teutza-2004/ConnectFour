@@ -23,7 +23,7 @@ void draw_cursor(uint8_t cursor, uint8_t player);
 // animatie de victorie
 void victory_animation(uint8_t winner);
 // este actionat buton-ul de drop a unei piese
-void drop_pressed(uint8_t *cursor, uint8_t *player);
+uint8_t drop_pressed(uint8_t *cursor, uint8_t *player);
 // returneaza 0 - no winner, 1 - player 1, 2 - player 2
 uint8_t check_winner();
 

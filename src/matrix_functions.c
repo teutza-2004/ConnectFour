@@ -195,7 +195,7 @@ void victory_animation(uint8_t winner) {
     _delay_us(300); // latch
 }
 
-void drop_pressed(uint8_t *cursor, uint8_t *player) {
+uint8_t drop_pressed(uint8_t *cursor, uint8_t *player) {
     if (button_pressed_flag == 1) { // verif daca SW e apasat
         matrix[0][*cursor] = 0;
         
@@ -210,12 +210,18 @@ void drop_pressed(uint8_t *cursor, uint8_t *player) {
         // verif daca exista winner
         uint8_t winner = check_winner();
         if (winner != 0) {
-            while (1) {
+            button_pressed_flag = 0; 
+            _delay_ms(200);
+
+            // bucla animatie castig
+            while (button_pressed_flag == 0) {
                 sound_play_win();
                 victory_animation(winner);
-                
                 _delay_ms(15); 
             }
+
+            // restart game
+            return 1; 
         }
 
         if (*player == 1) {
@@ -233,6 +239,8 @@ void drop_pressed(uint8_t *cursor, uint8_t *player) {
         // reset flag pt noua apasare
         button_pressed_flag = 0;
     }
+
+    return 0;
 }
 
 uint8_t check_winner() {
