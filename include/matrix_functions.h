@@ -1,6 +1,8 @@
 #ifndef MATRIX_FUNCTIONS_H
 #define MATRIX_FUNCTIONS_H
 
+extern volatile uint8_t button_pressed_flag;
+
 // LOGICA MATRICE LED
 // transmite byte spre matrice (ASM pt ca operatiile dureaza mai putine cicluri => nu se strica logica)
 void __attribute__((noinline)) ws2812b_send_byte(uint8_t dat);

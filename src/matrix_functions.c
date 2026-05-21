@@ -62,6 +62,9 @@ void show_board() {
 }
 
 // LOGICA JOC
+
+static uint32_t last_joystick_move = 0;
+
 uint8_t get_led_index(uint8_t row, uint8_t col) {
     return (row * 8) + col;
 }
@@ -70,7 +73,7 @@ int8_t drop_piece(uint8_t col, uint8_t player) {
     int8_t final_row = -1;
 
     // unde se opreste piesa
-    for (int8_t row = 7; row >= 0; row--) {
+    for (int8_t row = 7; row > 0; row--) { // nu iau si prima linie (aia e pt cursor)
         if (matrix[row][col] == 0) {
             final_row = row;
             break;
@@ -85,6 +88,7 @@ int8_t drop_piece(uint8_t col, uint8_t player) {
     for (int8_t row = 0; row <= final_row; row++) {
         matrix[row][col] = player;
         show_board();
+        sound_play_step();
         _delay_ms(60); 
         if (row < final_row) {
             matrix[row][col] = 0;
@@ -95,19 +99,25 @@ int8_t drop_piece(uint8_t col, uint8_t player) {
 }
 
 void update_cursor(uint8_t *cursor) {
-    uint16_t joy_x = analog_read(JOY_X_BIT); 
+    uint32_t current_time = uptime_ms();
+    
+    if (current_time - last_joystick_move < 200) {
+        return; 
+    }
 
-    if (joy_x < 200) {  // st
+    uint16_t joy_x = analog_read(JOY_X_BIT);
+
+    if (joy_x < 200) { // st
         if (*cursor > 0) {
             (*cursor)--;
+            last_joystick_move = current_time;
         }
-        _delay_ms(200);
     } 
     else if (joy_x > 800) { // dr
         if (*cursor < 7) {
             (*cursor)++;
+            last_joystick_move = current_time;
         }
-        _delay_ms(200);
     }
 }
 
@@ -119,35 +129,38 @@ void draw_cursor(uint8_t cursor, uint8_t player) {
         }
     }
     
-    if (matrix[0][cursor] == 0) {
-        matrix[0][cursor] = player;
+    if ((uptime_ms() / 400) % 2 == 0) {
+        if (matrix[0][cursor] == 0) {
+            matrix[0][cursor] = player;
+        }
     }
 
     show_board();
 }
 
 void drop_pressed(uint8_t *cursor, uint8_t *player) {
-    // verif daca SW e apasat
-    if (!(PIND & (1 << SW_BIT))) {
-        _delay_ms(50); // debounce
-        if (!(PIND & (1 << SW_BIT))) {
-            matrix[0][*cursor] = 0;
+    if (button_pressed_flag == 1) { // verif daca SW e apasat
+        matrix[0][*cursor] = 0;
+        
+        int8_t landed_row = drop_piece(*cursor, *player);
 
-            int8_t landed_row = drop_piece(*cursor, *player);
-
-            //  schimba jucatorul
-            if (landed_row != -1) {
-                if (*player == 1) {
-                    *player = 2;
-                } else {
-                    *player = 1;
-                }
+        if (landed_row == -1) {
+            sound_play_error();
+        } else {
+            if (*player == 1) {
+                *player = 2;
             }
-
-            // blocheaza cat timp jucatorul tine apasat SW
-            while (!(PIND & (1 << SW_BIT))) {
-                show_board();
+            else {
+                *player = 1;
             }
         }
+
+        // asteptam eliberarea SW
+        while (!(PIND & (1 << SW_BIT))) {
+            show_board();
+        }
+
+        // reset flag pt noua apasare
+        button_pressed_flag = 0;
     }
 }

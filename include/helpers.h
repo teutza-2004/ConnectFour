@@ -6,6 +6,7 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include "uptime.h"
 
 // port-uri digitale
 #define DIGITAL_PORT PORTD
@@ -25,6 +26,8 @@ extern uint8_t matrix[8][8];
 void config_init();
 // ecran de start
 void show_start_screen();
+// sunet de incepere joc
+void start_game_sound();
 // apasare buton SW si incepere joc
 void start_game();
 // aprindere/stingere red-uri playeri

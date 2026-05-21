@@ -2,6 +2,14 @@
 
 uint8_t matrix[8][8] = {0};
 
+volatile uint8_t button_pressed_flag = 0;
+
+ISR(INT0_vect) {
+    if (!(PIND & (1 << SW_BIT))) {
+        button_pressed_flag = 1;
+    }
+}
+
 void config_init() {
     // iesire matrice
     DDRD |= (1 << MATRIX_BIT);
@@ -13,6 +21,11 @@ void config_init() {
     // iesire led-uri
     DDRD |= (1 << LED1_BIT) | (1 << LED2_BIT);
     PORTD &= ~((1 << LED1_BIT) | (1 << LED2_BIT));
+
+    // intrerupere
+    EICRA |= (1 << ISC01);
+    EICRA &= ~(1 << ISC00);
+    EIMSK |= (1 << INT0);
 }
 
 void show_start_screen() {
@@ -29,14 +42,10 @@ void show_start_screen() {
 }
 
 void start_game() {
-    while (PIND & (1 << SW_BIT)) {
-        _delay_ms(10); 
-    }
+    while (button_pressed_flag == 0) {}
 
-    _delay_ms(50); 
-    while (!(PIND & (1 << SW_BIT))) {
-        _delay_ms(10);
-    }
+    sound_play_start();
+    button_pressed_flag = 0;
 
     // curatare ecran 
     for (uint8_t r = 0; r < 8; r++) {
