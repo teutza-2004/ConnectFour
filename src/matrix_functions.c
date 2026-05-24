@@ -1,6 +1,9 @@
 #include "helpers.h"
 #include "matrix_functions.h"
 
+extern uint32_t score_player1;
+extern uint32_t score_player2;
+
 // LOGICA MATRICE LED
 void __attribute__((noinline)) ws2812_send_byte(uint8_t dat) {
     uint8_t ctr;
@@ -204,7 +207,7 @@ uint8_t drop_pressed(uint8_t *cursor, uint8_t *player) {
         if (landed_row == -1) {
             sound_play_error();
             button_pressed_flag = 0;
-            return;
+            return 1;
         }
 
         // verif daca exista winner
@@ -213,6 +216,19 @@ uint8_t drop_pressed(uint8_t *cursor, uint8_t *player) {
             button_pressed_flag = 0; 
             _delay_ms(200);
 
+            // actualizare scor
+            if (winner == 1) {
+                score_player1++;
+            } else if (winner == 2) {
+                score_player2++;
+            }
+
+            display_score();
+
+            if (score_player1 == 5 || score_player2 == 5) {
+                game_final(winner);
+            }
+
             // bucla animatie castig
             while (button_pressed_flag == 0) {
                 sound_play_win();
@@ -220,7 +236,7 @@ uint8_t drop_pressed(uint8_t *cursor, uint8_t *player) {
                 _delay_ms(15); 
             }
 
-            // restart game
+            // incepe runda noua
             return 1; 
         }
 
@@ -230,6 +246,9 @@ uint8_t drop_pressed(uint8_t *cursor, uint8_t *player) {
         else {
             *player = 1;
         }
+
+        // resetare timep miscare
+        turn_start_time = uptime_ms();
 
         // asteptam eliberarea SW
         while (!(PIND & (1 << SW_BIT))) {

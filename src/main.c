@@ -2,7 +2,7 @@
 #include "matrix_functions.h"
 #include "buzzer.h"
 
-uint8_t cursor = 0;
+uint8_t cursor = 3;
 uint8_t current_player = 1;
 
 int main(void) {
@@ -10,13 +10,36 @@ int main(void) {
     uptime_init();
     adc_init();
     buzzer_init();
+    USART0_init(9600);
 
     // ecran initial inainte de inceperea jocului
     show_start_screen();
     start_game();
 
-    update_player_leds(current_player);
+    display_score();
+
+    update_player_leds(current_player, 0);
+
     while (1) {
+        uint32_t move_time = uptime_ms() - turn_start_time;
+
+        if (move_time >= 10000) {
+            sound_play_error(); // s-a scurs timpul
+            
+            matrix[0][cursor] = 0;
+
+            // se schimba jucatorul fortat
+            if (current_player == 1) {
+                current_player = 2;
+            } else {
+                current_player = 1;
+            }
+
+            cursor = 3;
+            turn_start_time = uptime_ms();
+            move_time = 0;
+        }
+
         update_cursor(&cursor);
         draw_cursor(cursor, current_player);
         
@@ -41,12 +64,13 @@ int main(void) {
             }
 
             // reset variablie stare
-            cursor = 0;
-            update_player_leds(current_player);
+            cursor = 3;
+            update_player_leds(current_player, 0);
+            turn_start_time = uptime_ms();
             
             continue; 
         }
 
-        update_player_leds(current_player);
+        update_player_leds(current_player, move_time);
     }
 }

@@ -1,8 +1,10 @@
 #include "helpers.h"
 
 uint8_t matrix[8][8] = {0};
-
+volatile uint32_t turn_start_time = 0;
 volatile uint8_t button_pressed_flag = 0;
+uint32_t score_player1 = 0;
+uint32_t score_player2 = 0;
 
 ISR(INT0_vect) {
     if (!(PIND & (1 << SW_BIT))) {
@@ -55,12 +57,65 @@ void start_game() {
     }
 }
 
-void update_player_leds(uint8_t player) {
-    if (player == 1) {
-        PORTD |= (1 << LED1_BIT);
-        PORTD &= ~(1 << LED2_BIT);
-    } else if (player == 2) {
-        PORTD |= (1 << LED2_BIT);
-        PORTD &= ~(1 << LED1_BIT);
+void update_player_leds(uint8_t current_player, uint32_t time_elapsed) {
+    uint8_t should_blink_on = 1;
+
+    if (time_elapsed >= 6000) {
+        if ((uptime_ms() / 500) % 2 == 0) {
+            should_blink_on = 1;
+        } else {
+            should_blink_on = 0;
+        }
+    }
+
+    if (current_player == 1) {
+        if (should_blink_on) {
+            PORTD |= (1 << PD4);
+        } else {
+            PORTD &= ~(1 << PD4);
+        }
+        PORTD &= ~(1 << PD5);
+    } 
+    else if (current_player == 2) {
+        if (should_blink_on) {
+            PORTD |= (1 << PD5);
+        } else {
+            PORTD &= ~(1 << PD5);
+        }
+        PORTD &= ~(1 << PD4);
+    }
+}
+
+void display_score() {
+    USART0_print("===================================\r\n");
+    
+    // Afișăm scorul pentru Jucătorul 1
+    USART0_print("  Jucator 1 (ROSU)  : ");
+    USART0_print_u32(score_player1);
+    USART0_print(" puncte\r\n");
+    
+    // Afișăm scorul pentru Jucătorul 2
+    USART0_print("  Jucator 2 (VERDE) : ");
+    USART0_print_u32(score_player2);
+    USART0_print(" puncte\r\n");
+}
+
+void game_final(uint8_t winner) {
+    USART0_print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\r\n");
+    if (score_player1 == 5) {
+        USART0_print("  FELICITARI! JUCATORUL 1 A CASTIGAT MECIUL!\r\n");
+    } else {
+        USART0_print("  FELICITARI! JUCATORUL 2 A CASTIGAT MECIUL!\r\n");
+    }
+    USART0_print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\r\n");
+    USART0_print(" Resetati placuta pentru un joc nou.\r\n\r\n");
+
+    sound_play_win();
+    _delay_ms(200);
+    sound_play_win();
+
+    while (1) {
+        victory_animation(winner);
+        _delay_ms(15); 
     }
 }

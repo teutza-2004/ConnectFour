@@ -21,6 +21,8 @@
 #define JOY_X_BIT PC0
 
 extern uint8_t matrix[8][8];
+extern volatile uint32_t turn_start_time;
+
 
 // configuratii port-uri iesire/intrare
 void config_init();
@@ -31,4 +33,8 @@ void start_game_sound();
 // apasare buton SW si incepere joc
 void start_game();
 // aprindere/stingere red-uri playeri
-void update_player_leds(uint8_t player);
+void update_player_leds(uint8_t current_player, uint32_t time_elapsed);
+// afisare scor
+void display_score();
+// final de meci
+void game_final(uint8_t winner);

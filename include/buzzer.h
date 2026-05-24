@@ -17,4 +17,4 @@ void sound_play_error(void);
 // sunet de victorie
 void sound_play_win(void);
 
-#endif
+#endif // BUZZER_H
