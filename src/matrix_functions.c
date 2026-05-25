@@ -204,10 +204,18 @@ uint8_t drop_pressed(uint8_t *cursor, uint8_t *player) {
         
         int8_t landed_row = drop_piece(*cursor, *player);
 
-        if (landed_row == -1) {
-            sound_play_error();
-            button_pressed_flag = 0;
-            return 1;
+        if (landed_row == -1) { // coloana plina
+            sound_play_error(); 
+
+            while (!(PIND & (1 << SW_BIT))) {
+                show_board();
+            }
+            _delay_ms(50);
+
+            button_pressed_flag = 0; 
+            EIFR |= (1 << INTF0); 
+
+            return -1;
         }
 
         // verif daca exista winner
